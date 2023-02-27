@@ -26,6 +26,7 @@ static void handle_syscall(trapframe *tf) {
   // IMPORTANT: return value should be returned to user app, or else, you will encounter
   // problems in later experiments!
   tf->regs.a0 = do_syscall(tf->regs.a0,tf->regs.a1,tf->regs.a2,tf->regs.a3,tf->regs.a4,tf->regs.a5,tf->regs.a6,tf->regs.a7);
+
 }
 
 //
@@ -41,6 +42,7 @@ void handle_mtimer_trap() {
   // hint: use write_csr to disable the SIP_SSIP bit in sip.
   g_ticks++;
   write_csr(sip,0);
+
 }
 
 //
@@ -56,8 +58,11 @@ void handle_user_page_fault(uint64 mcause, uint64 sepc, uint64 stval) {
       // dynamically increase application stack.
       // hint: first allocate a new physical page, and then, maps the new page to the
       // virtual address that causes the page fault.
-      panic( "You need to implement the operations that actually handle the page fault in lab2_3.\n" );
-
+      if(stval < 0x7ffff000 && stval > 0x7ffff000 - PGSIZE*20)
+      {
+        uint64 pa = (uint64)alloc_page();
+        user_vm_map((pagetable_t)current->pagetable, ROUNDDOWN(stval, PGSIZE), PGSIZE, pa, prot_to_type(PROT_WRITE | PROT_READ, 1));
+      }
       break;
     default:
       sprint("unknown page fault.\n");
