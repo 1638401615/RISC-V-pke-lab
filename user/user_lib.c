@@ -1,7 +1,7 @@
 /*
  * The supporting library for applications.
- * Actually, supporting routines for applications are catalogued as the user 
- * library. we don't do that in PKE to make the relationship between application 
+ * Actually, supporting routines for applications are catalogued as the user
+ * library. we don't do that in PKE to make the relationship between application
  * and user library more straightforward.
  */
 
@@ -47,5 +47,10 @@ int printu(const char* s, ...) {
 // applications need to call exit to quit execution.
 //
 int exit(int code) {
-  return do_user_call(SYS_user_exit, code, 0, 0, 0, 0, 0, 0); 
+  return do_user_call(SYS_user_exit, code, 0, 0, 0, 0, 0, 0);
+}
+
+//add print_backtrace
+int print_backtrace(int depth){
+  return do_user_call(SYS_user_print_backtrace, depth, 0, 0, 0, 0, 0, 0);
 }

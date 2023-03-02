@@ -5,7 +5,30 @@
 #include "process.h"
 
 #define MAX_CMDLINE_ARGS 64
+//@lab1_challenge1: elf section header
+typedef struct elf_sect_header_t{
+    uint32 name;      /* Section name (string tbl index) */
+    uint32 type;
+    uint64 flags;
+    uint64 addr;
+    uint64 offset;    /* Section offset*/
+    uint64 size;      /* Section size in bytes */
+    uint32 link;
+    uint32 info;
+    uint64 addralign;
+    uint64 entsize;
+} elf_sect_header;
 
+//@lab1_challenge1: elf symbolic section
+typedef struct elf_symbol_section_t{
+    uint32 st_name;           //  the index of string table which stores the name of the symbol
+    unsigned char st_info;    //  the type and other attributes of symbol
+    unsigned char st_other;
+    uint16 st_shndx;          //  the index of the section
+    uint64 st_value;          //  if symbol is function, value is the entry address of the function
+    uint64 st_size;           //  the size of symbol
+
+} elf_symbol_sect;
 // elf header structure
 typedef struct elf_header_t {
   uint32 magic;
@@ -39,6 +62,9 @@ typedef struct elf_prog_header_t {
 
 #define ELF_MAGIC 0x464C457FU  // "\x7FELF" in little endian
 #define ELF_PROG_LOAD 1
+#define SHT_SYMTAB	  2		/* Symbol table */
+#define SHT_STRTAB	  3		/* String table */
+#define STT_FUNC 2        /* symbol type is function*/
 
 typedef enum elf_status_t {
   EL_OK = 0,
@@ -53,11 +79,19 @@ typedef enum elf_status_t {
 typedef struct elf_ctx_t {
   void *info;
   elf_header ehdr;
+
+  // to get the name of each function called, we need to load .symtab and .strtab into the context
+
+  elf_symbol_sect symbols[1024];
+  unsigned char strtab[1024];
+  uint32 sym_num;
 } elf_ctx;
 
 elf_status elf_init(elf_ctx *ctx, void *info);
 elf_status elf_load(elf_ctx *ctx);
 
+// @lab1_challenge1 added for load .symtab and .strtab into memory
+elf_status elf_load_symbol(elf_ctx *ctx);
 void load_bincode_from_host_elf(process *p);
 
 #endif

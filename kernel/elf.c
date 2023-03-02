@@ -13,6 +13,9 @@ typedef struct elf_info_t {
   process *p;
 } elf_info;
 
+//elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
+//@lab1_challenge1: in order to access it in syscall
+elf_ctx elfloader;
 //
 // the implementation of allocater. allocates memory space for later segment loading
 //
@@ -75,6 +78,31 @@ elf_status elf_load(elf_ctx *ctx) {
   return EL_OK;
 }
 
+//@lab1_challenge 1: implement a function to load strtab and symtbl
+elf_status elf_load_symbol(elf_ctx *ctx){
+  int i, off;
+  elf_sect_header sh_addr;
+  int start = 0;
+  //traverse the elf section headers
+  for(i = 0, off = ctx->ehdr.shoff;i < ctx->ehdr.shnum; i++, off += sizeof(sh_addr)){
+    //read section header
+    if(elf_fpread(ctx, (void*)&sh_addr, sizeof(sh_addr), off) != sizeof(sh_addr)) return EL_EIO;
+    if(sh_addr.type == SHT_SYMTAB)//if this section is .symtab
+    {
+      //load .symtab into elf_ctx
+      if(elf_fpread(ctx, &ctx->symbols, sh_addr.size, sh_addr.offset) != sh_addr.size) return EL_EIO;
+      ctx->sym_num = sh_addr.size / sizeof(elf_symbol_sect);
+    }
+    else if(sh_addr.type == SHT_STRTAB){// if the section is .strtab
+      if(elf_fpread(ctx, &ctx->strtab + start, sh_addr.size, sh_addr.offset) != sh_addr.size) return EL_EIO;
+      start += sh_addr.size;
+    }
+  }
+  // sprint("symtab: %lx",&ctx->symbols);
+  // sprint("strtab: %s\n",&ctx->strtab);
+  return EL_OK;
+}
+
 typedef union {
   uint64 buf[MAX_CMDLINE_ARGS];
   char *argv[MAX_CMDLINE_ARGS];
@@ -103,6 +131,7 @@ static size_t parse_args(arg_buf *arg_bug_msg) {
 
 //
 // load the elf of user application, by using the spike file interface.
+// because we need .symtab and .strtab so we should load the elf into a global
 //
 void load_bincode_from_host_elf(process *p) {
   arg_buf arg_bug_msg;
@@ -113,8 +142,7 @@ void load_bincode_from_host_elf(process *p) {
 
   sprint("Application: %s\n", arg_bug_msg.argv[0]);
 
-  //elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
-  elf_ctx elfloader;
+
   // elf_info is defined above, used to tie the elf file and its corresponding process.
   elf_info info;
 
@@ -130,6 +158,9 @@ void load_bincode_from_host_elf(process *p) {
   // load elf. elf_load() is defined above.
   if (elf_load(&elfloader) != EL_OK) panic("Fail on loading elf.\n");
 
+  //@lab1_challenge1: add an extra load to get the section we need into memory
+  if (elf_load_symbol(&elfloader) != EL_OK) panic("Fail on loading .symtab and .strtab.\n");
+
   // entry (virtual, also physical in lab1_x) address
   p->trapframe->epc = elfloader.ehdr.entry;
 
@@ -138,3 +169,4 @@ void load_bincode_from_host_elf(process *p) {
 
   sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
 }
+
