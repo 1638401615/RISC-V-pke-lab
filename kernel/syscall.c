@@ -49,8 +49,8 @@ ssize_t sys_user_print_backtrace(int depth){
   uint64 fp = current->trapframe->regs.s0;// according to the lab doc, s0 stores fp
   //  print_backtrace is the leaf function, so it doesn't have ra in the stack frame,
   //  we can add 8 to get the return address of f8
-  uint64 ra = fp + 8;
-  // sprint("ra: %lx\n",*(uint64 *)ra);
+  uint64 ra = *(uint64 *)(fp - 8) - 8;
+  sprint("ra: %lx\n",*(uint64 *)ra);
   int index = 0;
   int dep = 0;
   for(;dep < depth;dep++,ra+=16){
