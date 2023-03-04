@@ -17,14 +17,14 @@ static void handle_misaligned_store() { panic("Misaligned AMO!"); }
 
 
 
-void print_line_information(addr_line *line){
+void print_line_information(addr_line line){
   char path[100];
   // find the dir path of code
-  strcpy(path, current->dir[current->file[line->file].dir]);
-  int dir_len = strlen(current->dir[current->file[line->file].dir]);
+  strcpy(path, current->dir[current->file[line.file].dir]);
+  int dir_len = strlen(current->dir[current->file[line.file].dir]);
   // add the file name of the code
   path[dir_len] = '/';
-  strcpy(path + dir_len + 1, current->file[current->line->file].file);
+  strcpy(path + dir_len + 1, current->file[line.file].file);
 
   // find the source code of this line
   struct stat file_stat;
@@ -39,18 +39,19 @@ void print_line_information(addr_line *line){
   // find the line which call illegal instruction
   int line_number = 1;
 
+
   // sprint("call  print_error\n");
   for(int i = 0;i < file_stat.st_size;i++){
     int line_start = i;
     while(i < file_stat.st_size && context[i] != '\n')
       i++;
 
-    if(line_number == line->line)
+    if(line_number == line.line)
     {
       // sprint("line: %d\n",line->line);
       // sprint("%d\n",line_number);
       context[i] = '\0';
-      sprint("Runtime error at %s:%d\n%s\n",path, line->line, context+line_start);
+      sprint("Runtime error at %s:%d\n%s\n",path, line.line, context+line_start);
       break;
     }
     line_number++;
@@ -65,7 +66,7 @@ void print_error(){
     //traverse the address of all the code to find out the illegal instruction
     // sprint("%lx\n",current->line[i].addr);
     if(mepc == current->line[i].addr){
-      print_line_information(current->line + i);
+      print_line_information(current->line[i]);
       break;
     }
   }
