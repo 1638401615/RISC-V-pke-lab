@@ -194,6 +194,9 @@ endop:;
     //     sprint("%p %d %d\n", p->line[i].addr, p->line[i].line, p->line[i].file);
 }
 
+//@lab1_challenge 2 : added a golbal static variable to store data in .debug_line
+char debug_line[10240];
+
 //
 // load the elf segments to memory regions as we are in Bare mode in lab1
 //
@@ -218,7 +221,28 @@ elf_status elf_load(elf_ctx *ctx) {
     if (elf_fpread(ctx, dest, ph_addr.memsz, ph_addr.off) != ph_addr.memsz)
       return EL_EIO;
   }
-
+    //@lab1_challenge2 : load .debug_line section into memory
+    elf_sect_header section_header_names;
+    elf_sect_header section_header;
+    //  according to the shstrndx we can get the index of the string table in section file
+    //  the string table stores the name of each section
+    if(elf_fpread(ctx, (void *)&section_header_names, sizeof(section_header_names),
+    ctx->ehdr.shoff + ctx->ehdr.shstrndx * sizeof(section_header_names)) != sizeof(section_header_names))
+    return EL_EIO;
+    //  we can traverse the section in section files to find out .debug_line section by comparing its names with ".debug_line"
+    for (i = 0, off = ctx->ehdr.shoff; i < ctx->ehdr.shnum; i++, off += sizeof(section_header)) {
+        if(elf_fpread(ctx, (void *)&section_header, sizeof(section_header), off) != sizeof(section_header)) return EL_EIO;
+        char name[20];
+        // the name in section structure stores the index of its name which is in the section_header_names
+        elf_fpread(ctx, (void *)name, 20, section_header_names.offset + section_header.name);
+        if(strcmp(name, ".debug_line") == 0){
+            // read the whole section into debug_line
+            if(elf_fpread(ctx, (void *)debug_line, section_header.size, section_header.offset) != section_header.size) return EL_EIO;
+            // parse it using the function we are offered
+            make_addr_line(ctx, (char *)debug_line, section_header.size);
+            break;
+        }
+    }
   return EL_OK;
 }
 
