@@ -47,13 +47,16 @@ int get_symbol_index(uint64 ra){
 ssize_t sys_user_print_backtrace(int depth){
   // uint64 sp = current->trapframe->regs.sp + 40;
   uint64 fp = current->trapframe->regs.s0;// according to the lab doc, s0 stores fp
-  //  print_backtrace is the leaf function, so it doesn't have ra in the stack frame,
-  //  we can add 8 to get the return address of f8
-  uint64 ra = *(uint64 *)(fp - 8) - 8;
-  sprint("ra: %lx\n",*(uint64 *)ra);
+  /*  from the picture of stack frame we know that `fp - 8` is the address of leaf function
+  (print_backtrace)'s fp, and it stores the stack bottom address of the function that calls it(f8),
+  so we can get the `ra` from the bottom address of its function.
+  */
+  uint64 ra = *(uint64 *)(fp-8) - 8;
+  // sprint("ra: %lx\n",*(uint64 *)ra);
   int index = 0;
   int dep = 0;
-  for(;dep < depth;dep++,ra+=16){
+
+  for(;dep < depth;dep++,ra=*(uint64 *)(ra-8)-8){
     // uint64 _sp = *(uint64 *)sp;//the return address of function
     index = get_symbol_index(*(uint64 *)ra);
 
