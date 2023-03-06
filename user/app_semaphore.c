@@ -1,15 +1,20 @@
 /*
 * This app create two child process.
 * Use semaphores to control the order of
-* the main process and two child processes print info. 
+* the main process and two child processes print info.
 */
 #include "user/user_lib.h"
 #include "util/types.h"
 
 int main(void) {
     int main_sem, child_sem[2];
-    main_sem = sem_new(1); 
+    main_sem = sem_new(1);
+
     for (int i = 0; i < 2; i++) child_sem[i] = sem_new(0);
+    // printu("the porcess id of parent: %d\n",main_sem);
+    // printu("the porcess id of child 0: %d\n",child_sem[0]);
+    // printu("the porcess id of child 1: %d\n",child_sem[1]);
+
     int pid = fork();
     if (pid == 0) {
         pid = fork();
@@ -22,6 +27,7 @@ int main(void) {
         for (int i = 0; i < 10; i++) {
             sem_P(main_sem);
             printu("Parent print %d\n", i);
+            // printu("child_sem[0]: %d\n",child_sem[0]);
             sem_V(child_sem[0]);
         }
     }

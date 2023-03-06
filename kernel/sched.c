@@ -4,9 +4,10 @@
 
 #include "sched.h"
 #include "spike_interface/spike_utils.h"
+extern semaphore sems[20];
 
 process* ready_queue_head = NULL;
-
+// process* wait_queue_head = NULL;
 //
 // insert a process, proc, into the END of ready queue.
 //
@@ -35,6 +36,32 @@ void insert_to_ready_queue( process* proc ) {
   return;
 }
 
+// @lab3_challenge2
+void insert_to_wait_queue(int semap, process* proc ) {
+  // sprint( "going to insert process %d to wait queue.\n", proc->pid );
+  // if the queue is empty in the beginning
+  if( sems[semap].wait_queue_head == NULL ){
+    proc->status = BLOCKED;
+    proc->queue_next = NULL;
+    sems[semap].wait_queue_head = proc;
+    // sprint("wait_queue_head: %lx\n",sems[semap].wait_queue_head);
+    return;
+  }
+
+  // ready queue is not empty
+  process *p;
+  // browse the ready queue to see if proc is already in-queue
+  for( p=sems[semap].wait_queue_head; p->queue_next!=NULL; p=p->queue_next )
+    if( p == proc ) return;  //already in queue
+
+  // p points to the last element of the ready queue
+  if( p==proc ) return;
+  p->queue_next = proc;
+  proc->status = BLOCKED;
+  proc->queue_next = NULL;
+
+  return;
+}
 //
 // choose a proc from the ready queue, and put it to run.
 // note: schedule() does not take care of previous current process. If the current
@@ -51,7 +78,7 @@ void schedule() {
     for( int i=0; i<NPROC; i++ )
       if( (procs[i].status != FREE) && (procs[i].status != ZOMBIE) ){
         should_shutdown = 0;
-        sprint( "ready queue empty, but process %d is not in free/zombie state:%d\n", 
+        sprint( "ready queue empty, but process %d is not in free/zombie state:%d\n",
           i, procs[i].status );
       }
 

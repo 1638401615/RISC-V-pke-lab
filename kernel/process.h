@@ -73,6 +73,13 @@ typedef struct process_t {
   int tick_count;
 }process;
 
+// @lab3_challenge2 : add semaphore sturct
+typedef struct{
+  int value;
+  int used;
+  process *wait_queue_head;
+} semaphore;
+
 // switch to run user app
 void switch_to(process*);
 

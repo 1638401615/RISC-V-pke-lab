@@ -1,7 +1,7 @@
 /*
  * The supporting library for applications.
- * Actually, supporting routines for applications are catalogued as the user 
- * library. we don't do that in PKE to make the relationship between application 
+ * Actually, supporting routines for applications are catalogued as the user
+ * library. we don't do that in PKE to make the relationship between application
  * and user library more straightforward.
  */
 
@@ -47,7 +47,7 @@ int printu(const char* s, ...) {
 // applications need to call exit to quit execution.
 //
 int exit(int code) {
-  return do_user_call(SYS_user_exit, code, 0, 0, 0, 0, 0, 0); 
+  return do_user_call(SYS_user_exit, code, 0, 0, 0, 0, 0, 0);
 }
 
 //
@@ -75,4 +75,18 @@ int fork() {
 //
 void yield() {
   do_user_call(SYS_user_yield, 0, 0, 0, 0, 0, 0, 0);
+}
+
+//
+// @lab3_challenge2: add sem_new, sem_P, sem_V function
+int sem_new(int semaphore_num){
+  return do_user_call(SYS_user_sem_new, semaphore_num, 0, 0, 0, 0, 0, 0);
+}
+
+void sem_P(int semap){
+  do_user_call(SYS_user_sem_P, semap, 0, 0, 0, 0, 0, 0);
+}
+
+void sem_V(int semap){
+  do_user_call(SYS_user_sem_V, semap, 0, 0, 0, 0, 0, 0);
 }
