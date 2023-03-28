@@ -5,6 +5,7 @@
 #include "vmm.h"
 #include "riscv.h"
 #include "pmm.h"
+#include "process.h"
 #include "util/types.h"
 #include "memlayout.h"
 #include "util/string.h"
@@ -191,4 +192,77 @@ void user_vm_unmap(pagetable_t page_dir, uint64 va, uint64 size, int free) {
   free_page((void *)pa);
   (uint64)*PTE & (uint64)(0xfffffffffffffffe);
 
+}
+//@lab2_challenge2
+// actually map the [old, new] address to the phisical address
+uint64 user_vm_malloc(pagetable_t pagetable, uint64 old_address, uint64 new_address){
+  if(old_address > new_address)
+    return old_address;
+  //this line is to align to the page
+  old_address = ((old_address+PGSIZE-1) & ~(PGSIZE-1));
+  char *mem_address;//the phisical address
+  for(uint64 address = old_address; address < new_address; address += PGSIZE){
+    mem_address = (char *)alloc_page();
+    memset(mem_address, 0, sizeof(char) * PGSIZE);
+    map_pages(pagetable, old_address, PGSIZE, (uint64)mem_address, prot_to_type(PROT_READ | PROT_WRITE, 1));
+  }
+  return new_address;
+}
+
+bool flag = FALSE;
+uint64 better_malloc(uint64 n){
+  if(!flag){
+    flag = TRUE;
+    // initialize the heap space
+    current->brk = USER_FREE_ADDRESS_START;
+    uint64 brk = current -> brk;
+    add_brk(sizeof(MCB));
+    pte_t *pte = page_walk(current->pagetable, brk, 0);
+    MCB *mcb = (MCB *)PTE2PA(*pte);
+    mcb->next = NULL;
+    mcb->size = 0;
+    current->head = (uint64)mcb;
+    current->tail = (uint64)mcb;
+  }
+  MCB *cur_head = (MCB *)current->head;
+  MCB *cur_tail = (MCB *)current->tail;
+  // allocate the first free block that has enough space to fullfill the application
+  while(TRUE){
+    if(cur_head->size >= n && cur_head->is_used == 0){
+      cur_head->is_used = 1;
+      return cur_head->offset + sizeof(MCB);
+    }
+    else if(cur_head -> next == NULL){
+      break;
+    }
+    cur_head = cur_head -> next;
+  }
+  // there is no block has enough space for the application, we should apply new phisical address
+  uint64 brk = current->brk;
+  add_brk((uint64)(sizeof(MCB) + n + 8));
+  pte_t *pte = page_walk(current->pagetable, brk, 0);
+  //get the physical address
+  MCB *mcb = (MCB *)(PTE2PA(*pte) + (brk & 0xfff));
+  // align the address
+  uint64 offset = (8 - ((uint64)mcb % 8)) % 8;
+  mcb = (MCB *)((uint64)mcb + offset);
+  mcb -> is_used = 1;
+  mcb -> offset = brk;
+  mcb -> size = n;
+  mcb -> next = cur_head -> next;
+  cur_head -> next = mcb;
+
+  return brk + sizeof(MCB);
+}
+
+void better_free(void *addr){
+  addr = (void *)((uint64)addr - sizeof(MCB));
+  pte_t *pte = page_walk(current->pagetable, (uint64)(addr), 0);
+  MCB *mcb = (MCB *)(PTE2PA(*pte) + ((uint64)addr & 0xfff));
+  // align to page
+  uint64 offset = (8 - ((uint64)mcb % 8)) % 8;
+  mcb = (MCB *)((uint64)mcb + offset);
+  if(mcb -> is_used == 0)
+    panic("the mcb is not used!");
+  mcb -> is_used = 0;
 }

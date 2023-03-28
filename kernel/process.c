@@ -1,7 +1,7 @@
 /*
- * Utility functions for process management. 
+ * Utility functions for process management.
  *
- * Note: in Lab1, only one process (i.e., our user application) exists. Therefore, 
+ * Note: in Lab1, only one process (i.e., our user application) exists. Therefore,
  * PKE OS at this stage will set "current" to the loaded user application, and also
  * switch to the old "current" process after trap handling.
  */
@@ -63,4 +63,13 @@ void switch_to(process* proc) {
   // return_to_user() is defined in kernel/strap_vector.S. switch to user mode with sret.
   // note, return_to_user takes two parameters @ and after lab2_1.
   return_to_user(proc->trapframe, user_satp);
+}
+
+
+//@lab2_challenge2
+uint64 add_brk(uint64 n){
+    uint64 brk = current -> brk;
+    user_vm_malloc(current->pagetable, brk, brk + n);
+    current -> brk += n;
+    return 0;
 }

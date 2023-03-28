@@ -30,5 +30,17 @@ void kern_vm_init(void);
 void *user_va_to_pa(pagetable_t page_dir, void *va);
 void user_vm_map(pagetable_t page_dir, uint64 va, uint64 size, uint64 pa, int perm);
 void user_vm_unmap(pagetable_t page_dir, uint64 va, uint64 size, int free);
+uint64 user_vm_malloc(pagetable_t pagetable, uint64 old_address, uint64 new_address);
+uint64 better_malloc(uint64 n);
+void better_free(void *addr);
+//@lab2_challenge2
+//to manage the memory space better, we need a mcb to control the information about the memory block;
+//mcb is added in the phisical space you apply, so it need extra space
+typedef struct mem_control_block{
+  int is_used;
+  int size;
+  int offset;
+  struct mem_control_block *next;
+}MCB;
 
 #endif

@@ -57,53 +57,61 @@ uint64 sys_user_free_page(uint64 va) {
   return 0;
 }
 //---------------------------------------------------------------------------------------------
-uint64 add_brk(int size){
-  char *mem;
-  for(int i = current->brk;i < current->brk + size;i += PGSIZE){
-    mem = (char *)alloc_page();
-    if(mem == 0)
-      panic("fail to add_brk");
-    memset(mem, 0, PGSIZE);
-    map_pages(current->pagetable, current->brk, PGSIZE, (uint64)mem, prot_to_type(PROT_READ | PROT_WRITE,1));
-  }
-  current->brk += size;
-  return current->brk;
-}
-uint64 sys_user_better_malloc(int n){
-  int idx = 0;
-  for(idx = current->head;idx < 1024;idx = current->blocks[idx].next){
-    if(current->blocks[idx].size >= n && current->blocks[idx].occupied == 0){
-      current->blocks[idx].occupied = 1;
-      return current->blocks[idx].offset;
-    }
-    if(current->blocks[idx].next == current->tail)
-      break;
-  }
-  //  if you can't find a emtpy block to be allocated, then we need to get one more page
-  uint64 brk = current->brk;
-  add_brk(brk);
-  current->blocks[idx].occupied = 1;
-  current->blocks[idx].offset = brk;
-  current->blocks[idx].size = n;
-  current->blocks[idx].next = idx + 1;
-  return brk;
-}
+// uint64 add_brk(int size){
+//   char *mem;
+//   for(int i = current->brk;i < current->brk + size;i += PGSIZE){
+//     mem = (char *)alloc_page();
+//     if(mem == 0)
+//       panic("fail to add_brk");
+//     memset(mem, 0, PGSIZE);
+//     map_pages(current->pagetable, current->brk, PGSIZE, (uint64)mem, prot_to_type(PROT_READ | PROT_WRITE,1));
+//   }
+//   current->brk += size;
+//   return current->brk;
+// }
+// uint64 sys_user_better_malloc(int n){
+//   int idx = 0;
+//   for(idx = current->head;idx < 1024;idx = current->blocks[idx].next){
+//     if(current->blocks[idx].size >= n && current->blocks[idx].occupied == 0){
+//       current->blocks[idx].occupied = 1;
+//       return current->blocks[idx].offset;
+//     }
+//     if(current->blocks[idx].next == current->tail)
+//       break;
+//   }
+//   //  if you can't find a emtpy block to be allocated, then we need to get one more page
+//   uint64 brk = current->brk;
+//   add_brk(brk);
+//   current->blocks[idx].occupied = 1;
+//   current->blocks[idx].offset = brk;
+//   current->blocks[idx].size = n;
+//   current->blocks[idx].next = idx + 1;
+//   return brk;
+// }
 
-uint64 sys_user_better_free(uint64 address){
-  for(int i = current->head;i < 1024;i = current->blocks[i].next)
-  {
-    if(current->blocks[i].offset == address)
-    {
-      current->blocks[i].occupied = 0;
-    }
-  }
-  return 0;
-}
+// uint64 sys_user_better_free(uint64 address){
+//   for(int i = current->head;i < 1024;i = current->blocks[i].next)
+//   {
+//     if(current->blocks[i].offset == address)
+//     {
+//       current->blocks[i].occupied = 0;
+//     }
+//   }
+//   return 0;
+// }
 //--------------------------------------------------------------------------------------------
 //
 // [a0]: the syscall number; [a1] ... [a7]: arguments to the syscalls.
 // returns the code of success, (e.g., 0 means success, fail for otherwise)
 //
+uint64 sys_user_better_malloc(uint64 n){
+  return better_malloc(n);
+}
+uint64 sys_user_better_free(uint64 va) {
+  better_free((void *)va);
+  return 0;
+}
+
 long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7) {
   switch (a0) {
     case SYS_user_print:
